@@ -4,8 +4,8 @@
 <circle cx="60" cy="40" r="3" fill="#fbbf24" opacity=".7"><animate attributeName="opacity" values=".2;.9;.2" dur="3s" repeatCount="indefinite"/></circle>
 <text x="48" y="64" font-size="14" letter-spacing="3" fill="#fbbf24" font-family="Segoe UI,Helvetica,Arial,sans-serif" font-weight="700">DEVOPS BOOTCAMP · LAB</text>
 <text x="48" y="112" font-size="40" font-weight="800" fill="#ffffff" font-family="Segoe UI,Helvetica,Arial,sans-serif">Nginx: The Front Door</text>
-<text x="48" y="142" font-size="15" fill="#e2e8f0" opacity=".92" font-family="Segoe UI,Helvetica,Arial,sans-serif">Marketing launches Monday and Clipstr must live on port 80 with a</text>
-<text x="48" y="164" font-size="15" fill="#e2e8f0" opacity=".92" font-family="Segoe UI,Helvetica,Arial,sans-serif">proper domain. Put Nginx in front of two Clipstr instances, then kill</text>
+<text x="48" y="142" font-size="15" fill="#e2e8f0" opacity=".92" font-family="Segoe UI,Helvetica,Arial,sans-serif">Marketing launches Monday and Clippy must live on port 80 with a</text>
+<text x="48" y="164" font-size="15" fill="#e2e8f0" opacity=".92" font-family="Segoe UI,Helvetica,Arial,sans-serif">proper domain. Put Nginx in front of two Clippy instances, then kill</text>
 <text x="48" y="186" font-size="15" fill="#e2e8f0" opacity=".92" font-family="Segoe UI,Helvetica,Arial,sans-serif">servers and flood it to see what it survives.</text>
 <rect x="48" y="242" width="105" height="32" rx="16" fill="#ffffff" fill-opacity=".14" stroke="#fbbf24" stroke-opacity=".7"/><text x="62" y="263" font-size="14" fill="#ffffff" font-family="Segoe UI,Helvetica,Arial,sans-serif">60-75 min</text>
 <rect x="165" y="242" width="114" height="32" rx="16" fill="#ffffff" fill-opacity=".14" stroke="#fbbf24" stroke-opacity=".7"/><text x="179" y="263" font-size="14" fill="#ffffff" font-family="Segoe UI,Helvetica,Arial,sans-serif">Cost: free</text>

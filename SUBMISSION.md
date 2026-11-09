@@ -4,7 +4,7 @@ Fork URL: <!-- paste the URL of your fork here -->
 
 ## Files to commit
 
-- [ ] `clipstr.conf`: your Nginx site configuration, committed to the repo
+- [ ] `clippy.conf`: your Nginx site configuration, committed to the repo
 
 ## Questions
 

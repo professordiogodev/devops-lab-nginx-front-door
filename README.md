@@ -24,7 +24,7 @@
 
 <p align="center"><img src="assets/gifs/situation.gif" width="300" alt=""></p>
 
-Thursday, 14:00. Marketing launches Clipstr on Monday with a campaign that will send real traffic. Right now users would have to type `:8001`, there is one server and no safety net, and the URL `www.clipstr.test` leads nowhere. The CTO's wishlist:
+Thursday, 14:00. Marketing launches Clippy on Monday with a campaign that will send real traffic. Right now users would have to type `:8001`, there is one server and no safety net, and the URL `www.clippy.test` leads nowhere. The CTO's wishlist:
 
 *"Port 80, one clean domain, `www` redirects to it, two app servers so one can die, a friendly page if everything dies, and something to stop a bot from flattening us."*
 
@@ -32,7 +32,7 @@ You are going to build that with Nginx, then test every promise by breaking thin
 
 > [!IMPORTANT]
 > **Your mission**
-> - Put **Nginx** in front of two Clipstr instances as a **reverse proxy** and load balancer
+> - Put **Nginx** in front of two Clippy instances as a **reverse proxy** and load balancer
 > - Add the redirect, the security headers and a **rate limit**
 > - Break the backends on purpose and watch what users see
 > - Read the logs like an operator
@@ -49,7 +49,7 @@ Fork this repository, clone your fork, and run:
 sudo ./setup.sh
 ```
 
-It installs Nginx and starts **two Clipstr instances**: A on `127.0.0.1:8001` and B on `127.0.0.1:8002`. Each reports its own name in `/healthz`, so you can see who answered. It also maps `clipstr.test` and `www.clipstr.test` to your machine. Nginx is installed with **no site configured**.
+It installs Nginx and starts **two Clippy instances**: A on `127.0.0.1:8001` and B on `127.0.0.1:8002`. Each reports its own name in `/healthz`, so you can see who answered. It also maps `clippy.test` and `www.clippy.test` to your machine. Nginx is installed with **no site configured**.
 
 <p align="center"><img src="assets/divider.svg" alt="" width="100%"></p>
 
@@ -58,22 +58,22 @@ It installs Nginx and starts **two Clipstr instances**: A on `127.0.0.1:8001` an
 <p align="center"><img src="assets/gifs/recon.gif" width="300" alt=""></p>
 
 1. `curl localhost:8001/healthz` and `curl localhost:8002/healthz`. Which `version` does each return?
-2. `curl -i http://clipstr.test/healthz`. What do you get from Nginx today? Where does that page come from? (`ls /etc/nginx/sites-enabled/`, `sudo nginx -T | head -50`)
+2. `curl -i http://clippy.test/healthz`. What do you get from Nginx today? Where does that page come from? (`ls /etc/nginx/sites-enabled/`, `sudo nginx -T | head -50`)
 3. Look at the layout: `/etc/nginx/nginx.conf`, `sites-available/`, `sites-enabled/`, `conf.d/`. Which file is read first and which includes the others?
 4. Where are the logs? (`ls /var/log/nginx`). Open a second terminal and run `sudo tail -f /var/log/nginx/access.log /var/log/nginx/error.log`. Leave it running.
 
 > [!NOTE]
-> **Think** Why put Nginx in front instead of exposing Clipstr on port 80 directly? List three things Nginx can do that Clipstr's own server should not.
+> **Think** Why put Nginx in front instead of exposing Clippy on port 80 directly? List three things Nginx can do that Clippy's own server should not.
 
 <p align="center"><img src="assets/divider.svg" alt="" width="100%"></p>
 
 ## Part 2 - Build the front door
 
-Write your configuration in `clipstr.conf` (in this repo), then install it:
+Write your configuration in `clippy.conf` (in this repo), then install it:
 
 ```bash
-sudo cp clipstr.conf /etc/nginx/sites-available/clipstr
-sudo ln -sf /etc/nginx/sites-available/clipstr /etc/nginx/sites-enabled/clipstr
+sudo cp clippy.conf /etc/nginx/sites-available/clippy
+sudo ln -sf /etc/nginx/sites-available/clippy /etc/nginx/sites-enabled/clippy
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
@@ -81,19 +81,19 @@ Always run `nginx -t` **before** reloading. Build the file up in steps and test 
 
 | Step | What it must do | Directive hints |
 |------|-----------------|-----------------|
-| 1 | Send `clipstr.test` to one Clipstr instance | `server`, `server_name`, `location /`, `proxy_pass` |
+| 1 | Send `clippy.test` to one Clippy instance | `server`, `server_name`, `location /`, `proxy_pass` |
 | 2 | Tell the app who the real client is | `proxy_set_header Host`, `X-Real-IP`, `X-Forwarded-For` |
 | 3 | Balance over **both** instances | `upstream` block with two `server` lines |
-| 4 | Redirect `www.clipstr.test` to `clipstr.test` with a permanent redirect, keeping the path | a second `server` block, `return 301` |
+| 4 | Redirect `www.clippy.test` to `clippy.test` with a permanent redirect, keeping the path | a second `server` block, `return 301` |
 | 5 | Add `X-Content-Type-Options: nosniff` and `X-Frame-Options`, and hide the Nginx version | `add_header ... always`, `server_tokens off` |
 
 > [!NOTE]
 > **Predict** After step 3, you send 10 requests to `/healthz`. Which instance answers each? Write down the pattern you expect, then run:
-> `for i in $(seq 10); do curl -s http://clipstr.test/healthz; echo; done`
+> `for i in $(seq 10); do curl -s http://clippy.test/healthz; echo; done`
 > Save the output for your submission. What is the default balancing method?
 
 > [!TIP]
-> **Checkpoint** `curl -i http://www.clipstr.test/stats` returns `301` with a `Location` header pointing at `http://clipstr.test/stats`.
+> **Checkpoint** `curl -i http://www.clippy.test/stats` returns `301` with a `Location` header pointing at `http://clippy.test/stats`.
 
 <p align="center"><img src="assets/divider.svg" alt="" width="100%"></p>
 
@@ -101,7 +101,7 @@ Always run `nginx -t` **before** reloading. Build the file up in steps and test 
 
 ### 3.1 One server dies
 
-There is a helper script: `sudo /var/lib/clipstr-lab/instance.sh stop a` (and `start a`).
+There is a helper script: `sudo /var/lib/clippy-lab/instance.sh stop a` (and `start a`).
 
 > [!NOTE]
 > **Predict** You stop instance A. What does a user see: an error on every second request, or nothing at all?
@@ -112,14 +112,14 @@ Run the 10-request loop again. Look at the Nginx **error log** while it happens.
 
 Stop **both** instances and call the site. You get Nginx's default `502 Bad Gateway`. That is what your customers would see on launch day.
 
-Create a friendly page (for example `/var/www/clipstr-errors/maintenance.html`, any HTML with a clear message of at least a sentence) and wire it with `error_page 502 503 504` and an `internal` location. Test again. Start both instances.
+Create a friendly page (for example `/var/www/clippy-errors/maintenance.html`, any HTML with a clear message of at least a sentence) and wire it with `error_page 502 503 504` and an `internal` location. Test again. Start both instances.
 
 ### 3.3 The bot
 
 A scraper hammers the site. Add a rate limit: `limit_req_zone` (5 requests per second per client IP) and `limit_req` with a `burst` in the `location`. Make rejected requests return **429**. Then flood it yourself:
 
 ```bash
-for i in $(seq 60); do curl -s -o /dev/null -w '%{http_code}\n' http://clipstr.test/healthz; done | sort | uniq -c
+for i in $(seq 60); do curl -s -o /dev/null -w '%{http_code}\n' http://clippy.test/healthz; done | sort | uniq -c
 ```
 
 > [!NOTE]
@@ -162,7 +162,7 @@ Resources left behind cost money, keep doors open and pollute the next lab. Remo
 
 Do this **last**, after you have pasted your `verify` output into `SUBMISSION.md` (once you tear down, the lab can no longer be verified).
 
-1. Run `sudo ./teardown.sh`. It stops both Clipstr instances and removes your site from Nginx, the error page, the `/etc/hosts` entries and the `clipstr` user. (Nginx itself stays installed.)
+1. Run `sudo ./teardown.sh`. It stops both Clippy instances and removes your site from Nginx, the error page, the `/etc/hosts` entries and the `clippy` user. (Nginx itself stays installed.)
 
 Then run the proof:
 
@@ -180,7 +180,7 @@ Answer the questions in `SUBMISSION.md` in **your fork** (paste output in code b
 
 **Files to commit**
 
-- `clipstr.conf`: your Nginx site configuration, committed to the repo
+- `clippy.conf`: your Nginx site configuration, committed to the repo
 
 **Questions to answer**
 
