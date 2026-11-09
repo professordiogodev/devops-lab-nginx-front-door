@@ -1,6 +1,4 @@
-# Nginx: The Front Door
-
-Marketing launches Monday and Clipstr must live on port 80 with a proper domain. Put Nginx in front of two Clipstr instances, then kill servers and flood it to see what it survives.
+<p align="center"><img src="assets/banner.svg" alt="Nginx: The Front Door" width="100%"></p>
 
 | | |
 |-|-|
@@ -17,9 +15,10 @@ Marketing launches Monday and Clipstr must live on port 80 with a proper domain.
 5. Commit and push. Open the **Actions** tab of your fork (click *I understand my workflows, go ahead and enable them* the first time). The **Lab check** shows what is still missing.
 6. When the check is green, **submit the URL of your fork** in the course platform.
 
+> [!NOTE]
 > The check only looks at your answers and any files the lab asks you to commit. Your instructor reads your work and may ask you to explain any line.
 
----
+<p align="center"><img src="assets/divider.svg" alt="" width="100%"></p>
 
 ## The situation
 
@@ -29,6 +28,7 @@ Thursday, 14:00. Marketing launches Clipstr on Monday with a campaign that will 
 
 You are going to build that with Nginx, then test every promise by breaking things.
 
+> [!IMPORTANT]
 > **Your mission**
 > - Put **Nginx** in front of two Clipstr instances as a **reverse proxy** and load balancer
 > - Add the redirect, the security headers and a **rate limit**
@@ -37,7 +37,7 @@ You are going to build that with Nginx, then test every promise by breaking thin
 
 **Time:** 60-75 min | **Cost:** free | **You need:** your Ubuntu environment with `sudo`. `sudo ./teardown.sh` removes the lab.
 
----
+<p align="center"><img src="assets/divider.svg" alt="" width="100%"></p>
 
 ## Part 0 - Set the scene
 
@@ -49,7 +49,7 @@ sudo ./setup.sh
 
 It installs Nginx and starts **two Clipstr instances**: A on `127.0.0.1:8001` and B on `127.0.0.1:8002`. Each reports its own name in `/healthz`, so you can see who answered. It also maps `clipstr.test` and `www.clipstr.test` to your machine. Nginx is installed with **no site configured**.
 
----
+<p align="center"><img src="assets/divider.svg" alt="" width="100%"></p>
 
 ## Part 1 - Recon
 
@@ -58,9 +58,10 @@ It installs Nginx and starts **two Clipstr instances**: A on `127.0.0.1:8001` an
 3. Look at the layout: `/etc/nginx/nginx.conf`, `sites-available/`, `sites-enabled/`, `conf.d/`. Which file is read first and which includes the others?
 4. Where are the logs? (`ls /var/log/nginx`). Open a second terminal and run `sudo tail -f /var/log/nginx/access.log /var/log/nginx/error.log`. Leave it running.
 
+> [!NOTE]
 > **Think** Why put Nginx in front instead of exposing Clipstr on port 80 directly? List three things Nginx can do that Clipstr's own server should not.
 
----
+<p align="center"><img src="assets/divider.svg" alt="" width="100%"></p>
 
 ## Part 2 - Build the front door
 
@@ -82,13 +83,15 @@ Always run `nginx -t` **before** reloading. Build the file up in steps and test 
 | 4 | Redirect `www.clipstr.test` to `clipstr.test` with a permanent redirect, keeping the path | a second `server` block, `return 301` |
 | 5 | Add `X-Content-Type-Options: nosniff` and `X-Frame-Options`, and hide the Nginx version | `add_header ... always`, `server_tokens off` |
 
+> [!NOTE]
 > **Predict** After step 3, you send 10 requests to `/healthz`. Which instance answers each? Write down the pattern you expect, then run:
 > `for i in $(seq 10); do curl -s http://clipstr.test/healthz; echo; done`
 > Save the output for your submission. What is the default balancing method?
 
+> [!TIP]
 > **Checkpoint** `curl -i http://www.clipstr.test/stats` returns `301` with a `Location` header pointing at `http://clipstr.test/stats`.
 
----
+<p align="center"><img src="assets/divider.svg" alt="" width="100%"></p>
 
 ## Part 3 - Break it (three experiments)
 
@@ -96,6 +99,7 @@ Always run `nginx -t` **before** reloading. Build the file up in steps and test 
 
 There is a helper script: `sudo /var/lib/clipstr-lab/instance.sh stop a` (and `start a`).
 
+> [!NOTE]
 > **Predict** You stop instance A. What does a user see: an error on every second request, or nothing at all?
 
 Run the 10-request loop again. Look at the Nginx **error log** while it happens. Which directives let Nginx notice and skip the dead server (`max_fails`, `fail_timeout`, `proxy_next_upstream`)? Tune them. Start A again afterwards.
@@ -114,9 +118,10 @@ A scraper hammers the site. Add a rate limit: `limit_req_zone` (5 requests per s
 for i in $(seq 60); do curl -s -o /dev/null -w '%{http_code}\n' http://clipstr.test/healthz; done | sort | uniq -c
 ```
 
+> [!NOTE]
 > **Think** What does `burst` do and what does `nodelay` change? Why is 429 more honest than 503 for a rate limit?
 
----
+<p align="center"><img src="assets/divider.svg" alt="" width="100%"></p>
 
 ## Part 4 - Investigate with the logs
 
@@ -124,7 +129,7 @@ for i in $(seq 60); do curl -s -o /dev/null -w '%{http_code}\n' http://clipstr.t
 2. In `error.log`, find the exact line that appeared when instance A died. Copy it for your submission.
 3. Count requests by status code from the log with `awk '{print $9}' /var/log/nginx/access.log | sort | uniq -c`.
 
----
+<p align="center"><img src="assets/divider.svg" alt="" width="100%"></p>
 
 ## Part 5 - Prove it
 
@@ -134,7 +139,7 @@ sudo ./verify.sh
 
 It stops your backends and floods your site on purpose to test the promises, then restores everything.
 
----
+<p align="center"><img src="assets/divider.svg" alt="" width="100%"></p>
 
 ## Level up (optional)
 
