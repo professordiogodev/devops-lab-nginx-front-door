@@ -1,0 +1,141 @@
+# LAB | Nginx: The Front Door
+
+## The situation
+
+Thursday, 14:00. Marketing launches Clipstr on Monday with a campaign that will send real traffic. Right now users would have to type `:8001`, there is one server and no safety net, and the URL `www.clipstr.test` leads nowhere. The CTO's wishlist:
+
+*"Port 80, one clean domain, `www` redirects to it, two app servers so one can die, a friendly page if everything dies, and something to stop a bot from flattening us."*
+
+You are going to build that with Nginx, then test every promise by breaking things.
+
+> **Your mission**
+> - Put **Nginx** in front of two Clipstr instances as a **reverse proxy** and load balancer
+> - Add the redirect, the security headers and a **rate limit**
+> - Break the backends on purpose and watch what users see
+> - Read the logs like an operator
+
+**Time:** 60-75 min | **Cost:** free | **You need:** your Ubuntu environment with `sudo`. `sudo ./teardown.sh` removes the lab.
+
+---
+
+## Part 0 - Set the scene
+
+Fork this repository, clone your fork, and run:
+
+```bash
+sudo ./setup.sh
+```
+
+It installs Nginx and starts **two Clipstr instances**: A on `127.0.0.1:8001` and B on `127.0.0.1:8002`. Each reports its own name in `/healthz`, so you can see who answered. It also maps `clipstr.test` and `www.clipstr.test` to your machine. Nginx is installed with **no site configured**.
+
+---
+
+## Part 1 - Recon
+
+1. `curl localhost:8001/healthz` and `curl localhost:8002/healthz`. Which `version` does each return?
+2. `curl -i http://clipstr.test/healthz`. What do you get from Nginx today? Where does that page come from? (`ls /etc/nginx/sites-enabled/`, `sudo nginx -T | head -50`)
+3. Look at the layout: `/etc/nginx/nginx.conf`, `sites-available/`, `sites-enabled/`, `conf.d/`. Which file is read first and which includes the others?
+4. Where are the logs? (`ls /var/log/nginx`). Open a second terminal and run `sudo tail -f /var/log/nginx/access.log /var/log/nginx/error.log`. Leave it running.
+
+> **Think** Why put Nginx in front instead of exposing Clipstr on port 80 directly? List three things Nginx can do that Clipstr's own server should not.
+
+---
+
+## Part 2 - Build the front door
+
+Write your configuration in `clipstr.conf` (in this repo), then install it:
+
+```bash
+sudo cp clipstr.conf /etc/nginx/sites-available/clipstr
+sudo ln -sf /etc/nginx/sites-available/clipstr /etc/nginx/sites-enabled/clipstr
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Always run `nginx -t` **before** reloading. Build the file up in steps and test after each one.
+
+| Step | What it must do | Directive hints |
+|------|-----------------|-----------------|
+| 1 | Send `clipstr.test` to one Clipstr instance | `server`, `server_name`, `location /`, `proxy_pass` |
+| 2 | Tell the app who the real client is | `proxy_set_header Host`, `X-Real-IP`, `X-Forwarded-For` |
+| 3 | Balance over **both** instances | `upstream` block with two `server` lines |
+| 4 | Redirect `www.clipstr.test` to `clipstr.test` with a permanent redirect, keeping the path | a second `server` block, `return 301` |
+| 5 | Add `X-Content-Type-Options: nosniff` and `X-Frame-Options`, and hide the Nginx version | `add_header ... always`, `server_tokens off` |
+
+> **Predict** After step 3, you send 10 requests to `/healthz`. Which instance answers each? Write down the pattern you expect, then run:
+> `for i in $(seq 10); do curl -s http://clipstr.test/healthz; echo; done`
+> Save the output for your submission. What is the default balancing method?
+
+> **Checkpoint** `curl -i http://www.clipstr.test/stats` returns `301` with a `Location` header pointing at `http://clipstr.test/stats`.
+
+---
+
+## Part 3 - Break it (three experiments)
+
+### 3.1 One server dies
+
+There is a helper script: `sudo /var/lib/clipstr-lab/instance.sh stop a` (and `start a`).
+
+> **Predict** You stop instance A. What does a user see: an error on every second request, or nothing at all?
+
+Run the 10-request loop again. Look at the Nginx **error log** while it happens. Which directives let Nginx notice and skip the dead server (`max_fails`, `fail_timeout`, `proxy_next_upstream`)? Tune them. Start A again afterwards.
+
+### 3.2 Everything dies
+
+Stop **both** instances and call the site. You get Nginx's default `502 Bad Gateway`. That is what your customers would see on launch day.
+
+Create a friendly page (for example `/var/www/clipstr-errors/maintenance.html`, any HTML with a clear message of at least a sentence) and wire it with `error_page 502 503 504` and an `internal` location. Test again. Start both instances.
+
+### 3.3 The bot
+
+A scraper hammers the site. Add a rate limit: `limit_req_zone` (5 requests per second per client IP) and `limit_req` with a `burst` in the `location`. Make rejected requests return **429**. Then flood it yourself:
+
+```bash
+for i in $(seq 60); do curl -s -o /dev/null -w '%{http_code}\n' http://clipstr.test/healthz; done | sort | uniq -c
+```
+
+> **Think** What does `burst` do and what does `nodelay` change? Why is 429 more honest than 503 for a rate limit?
+
+---
+
+## Part 4 - Investigate with the logs
+
+1. In `access.log`, find your flood: how many 429 lines? What do the fields in each line mean (address, time, request, status, bytes, user agent)?
+2. In `error.log`, find the exact line that appeared when instance A died. Copy it for your submission.
+3. Count requests by status code from the log with `awk '{print $9}' /var/log/nginx/access.log | sort | uniq -c`.
+
+---
+
+## Part 5 - Prove it
+
+```bash
+sudo ./verify.sh
+```
+
+It stops your backends and floods your site on purpose to test the promises, then restores everything.
+
+---
+
+## Level up (optional)
+
+- **Health-aware balancing.** Try `least_conn` and weights (`weight=3`). When is each useful?
+- **Caching.** Add `proxy_cache` for `/stats` for 5 seconds. What do you gain, what could go wrong?
+- **TLS.** Generate a self-signed certificate with `openssl` and add a `listen 443 ssl` server. Where would Let's Encrypt fit in a real deployment?
+
+<!-- submission:start (generated by labs.py, do not edit) -->
+## Submission
+
+Answer the questions in `SUBMISSION.md` in **your fork** (paste output in code blocks where asked), push, then submit the **URL of your fork**.
+
+**Files to commit**
+
+- `clipstr.conf`: your Nginx site configuration, committed to the repo
+
+**Questions to answer**
+
+1. Paste the output of 10 requests to `/healthz` and explain how you know the load is being shared. What is the default balancing method and how would you change it?
+2. You stopped one instance. Paste what the client saw and what the Nginx error log said. Which Nginx directives made failover possible?
+3. You stopped both instances. What does the user see now, and why is a custom error page better than the default 502?
+4. Explain what `limit_req` did when you flooded the site. Why is the status code 429 better than 503 here?
+5. What is the difference between a forward proxy and a reverse proxy? Where does TLS termination usually happen and why?
+6. Paste the output of `sudo ./verify.sh`. It must end with **ALL CHECKS PASSED**.
+<!-- submission:end -->
