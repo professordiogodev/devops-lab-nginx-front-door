@@ -2,11 +2,18 @@
 
 ## The situation
 
-Thursday, 14:00. Marketing launches Clippy on Monday with a campaign that will send real traffic. Right now users would have to type `:8001`, there is one server and no safety net, and the URL `www.clippy.test` leads nowhere. The CTO's wishlist:
+**Mission board - Launch Monday**
 
-*"Port 80, one clean domain, `www` redirects to it, two app servers so one can die, a friendly page if everything dies, and something to stop a bot from flattening us."*
+| Quest | Reward |
+|-------|--------|
+| Serve Clippy on port 80 | users stop typing `:8001` |
+| One clean domain | `www.clippy.test` leads somewhere |
+| `www` redirects to it | one address, not two |
+| Two app servers | one can die and nobody notices |
+| A friendly page if both die | no raw error |
+| A bot-stopper | a rate limit, so a bot cannot flatten you |
 
-You are going to build that with Nginx, then test every promise by breaking things.
+Marketing launches Clippy on Monday with a campaign that will send real traffic. You will build the front door with Nginx, then test every promise by breaking things on purpose. A quest only counts if you can show it holds.
 
 > **Your mission**
 > - Put **Nginx** in front of two Clippy instances as a **reverse proxy** and load balancer
